@@ -39,4 +39,8 @@ javac -cp ".;sqlite-jdbc.jar" PasswordManager.java PasswordGeneratorApp.java Pas
 java -cp ".;sqlite-jdbc.jar" PasswordGeneratorGUI
 # Run the Application
 java --enable-native-access=ALL-UNNAMED -cp ".;sqlite-jdbc-3.42.0.0.jar" PasswordGeneratorGUI
+
+# Download SQLite JDBC Driver
+curl -L -o sqlite-jdbc-3.42.0.0.jar https://github.com/xerial/sqlite-jdbc/releases/download/3.42.0.0/sqlite-jdbc-3.42.0.0.jar
+
 ```
