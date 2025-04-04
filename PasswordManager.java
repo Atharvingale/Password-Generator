@@ -9,29 +9,42 @@ public class PasswordManager {
     private static final String SYMBOLS = "!@#$%^&*()_+[]{};:.<>?/`~|";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String DB_URL = "jdbc:sqlite:passwords.db";
+    
+    // Add this line to declare the connection field
+    private Connection connection;
 
     public PasswordManager() {
         initializeDatabase();
     }
 
     private void initializeDatabase() {
-        String sql = """
-            CREATE TABLE IF NOT EXISTS passwords (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                website TEXT NOT NULL,
-                link TEXT,
-                username TEXT,
-                password TEXT NOT NULL,
-                length INTEGER NOT NULL,
-                datetime TEXT NOT NULL
-            )
-        """;
-
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             Statement stmt = conn.createStatement()) {
-            stmt.execute(sql);
+        try {
+            // Explicitly load the SQLite JDBC driver
+            Class.forName("org.sqlite.JDBC");
+            
+            connection = DriverManager.getConnection("jdbc:sqlite:passwords.db");
+            // Add code to create the table if it doesn't exist
+            createTableIfNotExists();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize database", e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("SQLite JDBC Driver not found", e);
+        }
+    }
+    
+    // Add this method to create the table if it doesn't exist
+    private void createTableIfNotExists() throws SQLException {
+        String sql = "CREATE TABLE IF NOT EXISTS passwords (" +
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                     "website TEXT NOT NULL," +
+                     "link TEXT," +
+                     "username TEXT," +
+                     "password TEXT NOT NULL," +
+                     "length INTEGER," +
+                     "datetime TEXT)";
+        
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
         }
     }
 
@@ -103,8 +116,7 @@ public class PasswordManager {
     public void appendToFile(String filename, String appName, String link, String username, String password) throws SQLException {
         String sql = "INSERT INTO passwords (website, link, username, password, length, datetime) VALUES (?, ?, ?, ?, ?, ?)";
         
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, appName.replace(",", ""));
             pstmt.setString(2, link.replace(",", ""));
             pstmt.setString(3, username.replace(",", ""));
@@ -119,8 +131,7 @@ public class PasswordManager {
         List<PasswordEntry> entries = new ArrayList<>();
         String sql = "SELECT * FROM passwords ORDER BY datetime DESC";
         
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             Statement stmt = conn.createStatement();
+        try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             
             while (rs.next()) {
@@ -140,8 +151,7 @@ public class PasswordManager {
     public void removePassword(String filename, String passwordToRemove) throws SQLException {
         String sql = "DELETE FROM passwords WHERE password = ?";
         
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, passwordToRemove);
             pstmt.executeUpdate();
         }
@@ -151,8 +161,7 @@ public class PasswordManager {
         String sql = "SELECT * FROM passwords WHERE LOWER(website) LIKE ? OR LOWER(username) LIKE ? LIMIT 1";
         String searchPattern = "%" + searchTerm.toLowerCase() + "%";
         
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, searchPattern);
             pstmt.setString(2, searchPattern);
             
@@ -176,12 +185,23 @@ public class PasswordManager {
         String sql = "DELETE FROM passwords WHERE LOWER(website) LIKE ? OR LOWER(username) LIKE ?";
         String searchPattern = "%" + identifier.toLowerCase() + "%";
         
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, searchPattern);
             pstmt.setString(2, searchPattern);
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
+        }
+    }
+    
+    // Add this method at the end of the class
+    public void closeConnection() {
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                // Log the error but don't throw it
+                System.err.println("Error closing database connection: " + e.getMessage());
+            }
         }
     }
 }

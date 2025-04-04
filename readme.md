@@ -35,9 +35,8 @@ If you don't have Java installed:
 ## Compilation and Execution
 ```bash
 # Compilation and Execution
-javac -cp ".;sqlite-jdbc-3.42.0.0.jar" PasswordManager.java PasswordGeneratorApp.java PasswordGeneratorGUI.java
-
-javac -cp ".:sqlite-jdbc-3.42.0.0.jar" PasswordManager.java PasswordGeneratorApp.java PasswordGeneratorGUI.java
+javac -cp ".;sqlite-jdbc.jar" PasswordManager.java PasswordGeneratorApp.java PasswordGeneratorGUI.java
+java -cp ".;sqlite-jdbc.jar" PasswordGeneratorGUI
 # Run the Application
 java --enable-native-access=ALL-UNNAMED -cp ".;sqlite-jdbc-3.42.0.0.jar" PasswordGeneratorGUI
 ```
